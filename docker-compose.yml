@@ -1,0 +1,12 @@
+services:
+  socks5:
+    build: .
+    container_name: socks5-server
+    ports:
+      - "${SOCKS5_PORT:-1080}:1080"
+    environment:
+      - PROXY_USER=${PROXY_USER:-}
+      - PROXY_PASS=${PROXY_PASS:-}
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
