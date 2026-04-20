@@ -32,4 +32,4 @@ else
 fi
 
 touch /var/log/danted.log
-exec danted -f "$CONF"
+exec sockd -f "$CONF"
