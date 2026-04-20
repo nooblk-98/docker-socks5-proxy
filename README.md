@@ -1,11 +1,11 @@
-# socks5-docker
+# docker-socks5-proxy
 
 A lightweight SOCKS5 proxy server running inside Docker, powered by [Dante](https://www.inet.no/dante/) on Alpine Linux.
 
 ## Project Structure
 
 ```
-socks5-docker/
+docker-socks5-proxy/
 ├── config/
 │   └── danted.conf       # Dante server configuration
 ├── scripts/
