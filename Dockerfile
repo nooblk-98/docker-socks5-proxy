@@ -1,6 +1,6 @@
 FROM alpine:3.19
 
-RUN apk add --no-cache dante-server shadow
+RUN apk add --no-cache dante-server shadow iproute2
 
 COPY danted.conf /etc/danted.conf
 COPY entrypoint.sh /entrypoint.sh
