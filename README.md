@@ -7,7 +7,7 @@ A lightweight SOCKS5 proxy server running inside Docker, powered by [Dante](http
 ```
 socks5-docker/
 ├── config/
-│   └── danted.conf       # Dante SOCKS5 server configuration
+│   └── danted.conf       # Dante server configuration
 ├── scripts/
 │   └── entrypoint.sh     # Container startup script
 ├── Dockerfile
@@ -21,34 +21,26 @@ socks5-docker/
 - SOCKS5 protocol (TCP)
 - Optional username/password authentication
 - Auto-detects the container's outbound network interface
-- Minimal Alpine-based image
+- Minimal Alpine-based image (~10MB)
 
 ## Quick Start
 
-### 1. Configure environment
-
 ```bash
 cp .env.example .env
-# edit .env if needed
-```
-
-### 2. Start the proxy
-
-```bash
 docker compose up -d
 ```
 
-The server listens on port `54178` by default (host network mode — no port mapping needed).
+The server listens on port `54178` by default.
 
 ## Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PROXY_USER` | _(empty)_ | Username for SOCKS5 auth. Leave empty for open proxy. |
-| `PROXY_PASS` | _(empty)_ | Password for SOCKS5 auth. |
+| `PROXY_USER` | _(empty)_ | Username for auth. Leave empty for open proxy. |
+| `PROXY_PASS` | _(empty)_ | Password for auth. |
 | `SOCKS5_PORT` | `54178` | Host port to expose the proxy on. |
 
-## Authentication Modes
+## Authentication
 
 ### Open proxy (no auth)
 
@@ -56,20 +48,22 @@ The server listens on port `54178` by default (host network mode — no port map
 docker compose up -d
 ```
 
-### Username/password auth
+### Username/password
 
-```bash
-PROXY_USER=alice PROXY_PASS=secret docker compose up -d
-```
-
-Or set in `.env`:
+Set in `.env`:
 
 ```env
 PROXY_USER=alice
 PROXY_PASS=secret
 ```
 
-## Test the Proxy
+Then:
+
+```bash
+docker compose up -d
+```
+
+## Testing
 
 ```bash
 # Without auth
@@ -79,17 +73,15 @@ curl --socks5 <your-server-ip>:54178 https://ifconfig.me
 curl --socks5 alice:secret@<your-server-ip>:54178 https://ifconfig.me
 ```
 
-## Build & Run Manually
-
-```bash
-docker build -t socks5-server .
-docker run -d --network host socks5-server
-```
-
 ## Firewall
-
-Make sure your firewall allows inbound TCP on the configured port:
 
 ```bash
 ufw allow 54178/tcp
+```
+
+## Manual Build
+
+```bash
+docker build -t socks5-server .
+docker run -d -p 54178:1080 socks5-server
 ```
