@@ -27,7 +27,4 @@ else
     echo "Auth mode: none (open proxy)"
 fi
 
-# Validate config before starting
-sockd -V -f "$CONF"
-
 exec sockd -f "$CONF"
