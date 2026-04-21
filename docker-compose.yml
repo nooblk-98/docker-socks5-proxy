@@ -4,7 +4,43 @@ services:
     container_name: socks5-server
     ports:
       - "${SOCKS5_PORT:-54178}:1080"
+      # Uncomment to expose the TLS port (requires TLS_ENABLED=true)
+      # - "${TLS_PORT:-1443}:1443"
     environment:
+      # ── Authentication ────────────────────────────────────────────────────
       - PROXY_USER=${PROXY_USER:-}
       - PROXY_PASS=${PROXY_PASS:-}
+      # Comma-separated list of user:pass pairs (overrides PROXY_USER/PROXY_PASS)
+      - PROXY_USERS=${PROXY_USERS:-}
+
+      # ── Access control ────────────────────────────────────────────────────
+      # Comma-separated CIDRs allowed to connect (empty = allow all)
+      - ALLOWED_CIDR=${ALLOWED_CIDR:-}
+      # Comma-separated destination IPs/CIDRs to block (empty = block none)
+      - BLOCKED_DESTINATIONS=${BLOCKED_DESTINATIONS:-}
+
+      # ── Networking ────────────────────────────────────────────────────────
+      - UDP_ENABLED=${UDP_ENABLED:-false}
+      - IPV6_ENABLED=${IPV6_ENABLED:-false}
+      # Override container DNS server
+      - DNS_SERVER=${DNS_SERVER:-}
+
+      # ── Timeouts (seconds) ────────────────────────────────────────────────
+      - TIMEOUT_CONNECT=${TIMEOUT_CONNECT:-30}
+      - TIMEOUT_NEGOTIATE=${TIMEOUT_NEGOTIATE:-30}
+      - TIMEOUT_IO=${TIMEOUT_IO:-86400}
+
+      # ── Tor routing ───────────────────────────────────────────────────────
+      - TOR_ENABLED=${TOR_ENABLED:-false}
+
+      # ── TLS (stunnel wrapper) ─────────────────────────────────────────────
+      - TLS_ENABLED=${TLS_ENABLED:-false}
+      - TLS_PORT=${TLS_PORT:-1443}
+      # Path inside container to PEM file (cert + key). Auto-generated if absent.
+      - TLS_CERT=${TLS_CERT:-}
+    volumes:
+      # Uncomment to load multiple users from a file (one user:pass per line)
+      # - ./users.txt:/etc/proxy-users.txt:ro
+      # Uncomment to supply your own TLS certificate
+      # - ./certs:/etc/stunnel:ro
     restart: unless-stopped
