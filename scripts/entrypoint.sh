@@ -156,41 +156,11 @@ if [ "${TOR_ENABLED:-false}" = "true" ]; then
     fi
 fi
 
-# ── 6. Start stunnel TLS wrapper (if enabled) ─────────────────────────────────
-if [ "${TLS_ENABLED:-false}" = "true" ]; then
-    TLS_CERT="${TLS_CERT:-/etc/stunnel/stunnel.pem}"
-    TLS_PORT="${TLS_PORT:-1443}"
-    mkdir -p /etc/stunnel
-
-    if [ ! -f "$TLS_CERT" ]; then
-        log "INFO: Generating self-signed TLS certificate..."
-        openssl req -new -x509 -days 3650 -nodes \
-            -subj "/CN=socks5-proxy" \
-            -out /etc/stunnel/stunnel.pem \
-            -keyout /etc/stunnel/stunnel.pem 2>/dev/null
-        chmod 600 /etc/stunnel/stunnel.pem
-        TLS_CERT=/etc/stunnel/stunnel.pem
-        log "INFO: Self-signed certificate generated at $TLS_CERT"
-    fi
-
-    cat > /etc/stunnel/stunnel.conf <<STUNCONF
-foreground = no
-pid = /var/run/stunnel.pid
-
-[socks5-tls]
-accept  = $TLS_PORT
-connect = 127.0.0.1:1080
-cert    = $TLS_CERT
-STUNCONF
-
-    stunnel /etc/stunnel/stunnel.conf
-    log "INFO: stunnel TLS wrapper started on port $TLS_PORT"
-fi
-
-# ── 7. Start Dante ────────────────────────────────────────────────────────────
+# ── 6. Start Dante ────────────────────────────────────────────────────────────
 sockd -f "$CONF" &
 SOCKD_PID=$!
 log "INFO: Dante started (PID $SOCKD_PID)"
+
 
 # Forward SIGHUP to sockd for live config reload
 trap 'log "INFO: Reloading Dante config..."; kill -HUP "$SOCKD_PID" 2>/dev/null' HUP
