@@ -1,0 +1,36 @@
+services:
+  socks5:
+    image: lahiru98s/docker-socks5-proxy:latest
+    container_name: socks5-server
+    ports:
+      - "${SOCKS5_PORT:-54178}:1080"
+    environment:
+      # ── Authentication ────────────────────────────────────────────────────
+      - PROXY_USER=${PROXY_USER:-}
+      - PROXY_PASS=${PROXY_PASS:-}
+      # Comma-separated list of user:pass pairs (overrides PROXY_USER/PROXY_PASS)
+      - PROXY_USERS=${PROXY_USERS:-}
+
+      # ── Access control ────────────────────────────────────────────────────
+      # Comma-separated CIDRs allowed to connect (empty = allow all)
+      - ALLOWED_CIDR=${ALLOWED_CIDR:-}
+      # Comma-separated destination IPs/CIDRs to block (empty = block none)
+      - BLOCKED_DESTINATIONS=${BLOCKED_DESTINATIONS:-}
+
+      # ── Networking ────────────────────────────────────────────────────────
+      - UDP_ENABLED=${UDP_ENABLED:-false}
+      - IPV6_ENABLED=${IPV6_ENABLED:-false}
+      # Override container DNS server
+      - DNS_SERVER=${DNS_SERVER:-}
+
+      # ── Timeouts (seconds) ────────────────────────────────────────────────
+      - TIMEOUT_CONNECT=${TIMEOUT_CONNECT:-30}
+      - TIMEOUT_NEGOTIATE=${TIMEOUT_NEGOTIATE:-30}
+      - TIMEOUT_IO=${TIMEOUT_IO:-86400}
+
+      # ── Tor routing ───────────────────────────────────────────────────────
+      - TOR_ENABLED=${TOR_ENABLED:-false}
+
+    # volumes:
+    #   - ./users.txt:/etc/proxy-users.txt:ro
+    restart: unless-stopped
