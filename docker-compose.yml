@@ -4,7 +4,6 @@ services:
     container_name: socks5-server
     ports:
       - "${SOCKS5_PORT:-54178}:1080"
-      - "${TLS_PORT:-1443}:1443"
     environment:
       # ── Authentication ────────────────────────────────────────────────────
       - PROXY_USER=${PROXY_USER:-}
@@ -32,14 +31,6 @@ services:
       # ── Tor routing ───────────────────────────────────────────────────────
       - TOR_ENABLED=${TOR_ENABLED:-false}
 
-      # ── TLS (stunnel wrapper) ─────────────────────────────────────────────
-      - TLS_ENABLED=${TLS_ENABLED:-true}
-      - TLS_PORT=${TLS_PORT:-1443}
-      # Path inside container to PEM file (cert + key). Auto-generated if absent.
-      - TLS_CERT=${TLS_CERT:-}
     # volumes:
-    #   # Uncomment to load multiple users from a file (one user:pass per line)
     #   - ./users.txt:/etc/proxy-users.txt:ro
-    #   # Uncomment to supply your own TLS certificate
-    #   - ./certs:/etc/stunnel:ro
     restart: unless-stopped
