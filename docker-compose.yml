@@ -38,9 +38,9 @@ services:
       - TLS_PORT=${TLS_PORT:-1443}
       # Path inside container to PEM file (cert + key). Auto-generated if absent.
       - TLS_CERT=${TLS_CERT:-}
-    volumes:
-      # Uncomment to load multiple users from a file (one user:pass per line)
-      # - ./users.txt:/etc/proxy-users.txt:ro
-      # Uncomment to supply your own TLS certificate
-      # - ./certs:/etc/stunnel:ro
+    # volumes:
+    #   # Uncomment to load multiple users from a file (one user:pass per line)
+    #   - ./users.txt:/etc/proxy-users.txt:ro
+    #   # Uncomment to supply your own TLS certificate
+    #   - ./certs:/etc/stunnel:ro
     restart: unless-stopped
