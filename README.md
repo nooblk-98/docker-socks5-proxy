@@ -30,7 +30,6 @@ docker-socks5-proxy/
 | Custom DNS | Override the container's resolver |
 | Configurable timeouts | `TIMEOUT_CONNECT`, `TIMEOUT_NEGOTIATE`, `TIMEOUT_IO` |
 | Tor routing | Route all traffic through Tor with one env var |
-| TLS wrapper | Wrap the proxy in TLS via stunnel (auto-generates a cert) |
 | Graceful reload | Send `SIGHUP` to reload config without restarting |
 | Health check | Docker `HEALTHCHECK` reports real proxy availability |
 
@@ -61,9 +60,6 @@ The server listens on port `54178` by default.
 | `TIMEOUT_NEGOTIATE` | `30` | SOCKS5 negotiation timeout in seconds |
 | `TIMEOUT_IO` | `86400` | Idle session timeout in seconds |
 | `TOR_ENABLED` | `false` | Route all outbound traffic through Tor |
-| `TLS_ENABLED` | `false` | Wrap proxy in TLS via stunnel |
-| `TLS_PORT` | `1443` | Host port for the TLS listener |
-| `TLS_CERT` | _(empty)_ | Path inside container to PEM file (auto-generated if empty) |
 
 ---
 
@@ -181,44 +177,6 @@ Dante is configured to forward all connections to Tor's local SOCKS5 port (9050)
 
 ---
 
-## TLS
-
-Wrap the SOCKS5 port in TLS using stunnel. A self-signed certificate is generated automatically if none is provided.
-
-```env
-TLS_ENABLED=true
-TLS_PORT=1443
-```
-
-Uncomment the TLS port mapping in `docker-compose.yml`:
-
-```yaml
-ports:
-  - "${SOCKS5_PORT:-54178}:1080"
-  - "${TLS_PORT:-1443}:1443"
-```
-
-### Bring your own certificate
-
-Place a PEM file (certificate + private key combined) on the host and mount it:
-
-```yaml
-volumes:
-  - ./certs:/etc/stunnel:ro
-```
-
-```env
-TLS_CERT=/etc/stunnel/my-cert.pem
-```
-
-Connect with:
-
-```bash
-curl --socks5 alice:secret@<host>:1443 --proxy-insecure https://ifconfig.me
-```
-
----
-
 ## Graceful Config Reload
 
 Modify environment variables, then send `SIGHUP` to reload Dante without dropping the container:
@@ -238,9 +196,6 @@ curl --socks5 <host>:54178 https://ifconfig.me
 # With authentication
 curl --socks5 alice:secret@<host>:54178 https://ifconfig.me
 
-# Via TLS
-curl --socks5 alice:secret@<host>:1443 --proxy-insecure https://ifconfig.me
-
 # Check Tor exit IP
 TOR_ENABLED=true docker compose up -d
 curl --socks5 <host>:54178 https://check.torproject.org/api/ip
@@ -251,11 +206,7 @@ curl --socks5 <host>:54178 https://check.torproject.org/api/ip
 ## Firewall
 
 ```bash
-# Plain SOCKS5
 ufw allow 54178/tcp
-
-# TLS port (if enabled)
-ufw allow 1443/tcp
 ```
 
 ---
