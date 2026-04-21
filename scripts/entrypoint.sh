@@ -3,7 +3,7 @@ set -e
 
 CONF=/etc/danted.conf
 
-log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
+log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2; }
 
 # ── 1. Detect outbound network interface ──────────────────────────────────────
 IFACE=$(ip route | awk '/default/ {print $5; exit}')
@@ -37,10 +37,9 @@ if [ -f "/etc/proxy-users.txt" ]; then
     log "INFO: Auth mode: multi-user (file)"
     AUTH_ENABLED=true
     while IFS= read -r line; do
-        case "$line" in
-            '#'*|'') continue ;;
-        esac
-        _u=$(printf '%s' "$line" | cut -d: -f1)
+        case "$line" in '#'*|'') continue ;; esac
+        [ -z "$(printf '%s' "$line" | tr -d ' \t')" ] && continue
+        _u=$(printf '%s' "$line" | cut -d: -f1 | tr -d ' \t')
         _p=$(printf '%s' "$line" | cut -d: -f2-)
         provision_user "$_u" "$_p"
     done < /etc/proxy-users.txt
@@ -140,7 +139,7 @@ if [ "${TOR_ENABLED:-false}" = "true" ]; then
     tor --RunAsDaemon 1 \
         --SocksPort 9050 \
         --DataDirectory /tmp/tor-data \
-        --Log "warn stderr"
+        --Log "notice file /tmp/tor-data/notices.log"
 
     log "INFO: Waiting for Tor to be ready..."
     _i=0
