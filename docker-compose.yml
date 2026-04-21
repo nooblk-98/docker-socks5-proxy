@@ -4,8 +4,7 @@ services:
     container_name: socks5-server
     ports:
       - "${SOCKS5_PORT:-54178}:1080"
-      # Uncomment to expose the TLS port (requires TLS_ENABLED=true)
-      # - "${TLS_PORT:-1443}:1443"
+      - "${TLS_PORT:-1443}:1443"
     environment:
       # ── Authentication ────────────────────────────────────────────────────
       - PROXY_USER=${PROXY_USER:-}
@@ -34,7 +33,7 @@ services:
       - TOR_ENABLED=${TOR_ENABLED:-false}
 
       # ── TLS (stunnel wrapper) ─────────────────────────────────────────────
-      - TLS_ENABLED=${TLS_ENABLED:-false}
+      - TLS_ENABLED=${TLS_ENABLED:-true}
       - TLS_PORT=${TLS_PORT:-1443}
       # Path inside container to PEM file (cert + key). Auto-generated if absent.
       - TLS_CERT=${TLS_CERT:-}
