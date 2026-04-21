@@ -35,6 +35,37 @@ docker-socks5-proxy/
 
 ## Quick Start
 
+### Option 1 — Pull from Docker Hub (recommended)
+
+```bash
+docker run -d \
+  --name socks5-server \
+  --restart unless-stopped \
+  -p 54178:1080 \
+  lahiru98s/docker-socks5-proxy:latest
+```
+
+With authentication:
+
+```bash
+docker run -d \
+  --name socks5-server \
+  --restart unless-stopped \
+  -p 54178:1080 \
+  -e PROXY_USER=alice \
+  -e PROXY_PASS=secret \
+  lahiru98s/docker-socks5-proxy:latest
+```
+
+Or with Docker Compose using the prebuilt image:
+
+```bash
+curl -O https://raw.githubusercontent.com/nooblk-98/docker-socks5-proxy/main/docker-compose.prebuilt.yml
+docker compose -f docker-compose.prebuilt.yml up -d
+```
+
+### Option 2 — Build from source
+
 ```bash
 cp .env.example .env
 # edit .env as needed
