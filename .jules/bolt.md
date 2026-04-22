@@ -1,0 +1,3 @@
+## 2026-04-22 - [Optimizing Shell Scripts by Reducing Process Forks]
+**Learning:** In shell scripts, especially those running in restricted environments like Alpine-based Docker containers, process forks (e.g., calling `tr`, `sed`, `awk` inside loops) are surprisingly expensive. Replacing these with native POSIX shell parameter expansion and clever use of `IFS` can lead to massive performance gains in startup scripts.
+**Action:** Always prefer `${var#pattern}` and `${var%pattern}` over `echo $var | tr` or `sed` for simple string manipulations in loops. For removing all whitespace, a `for` loop with a customized `IFS` is a highly efficient, fork-less alternative to `tr -d '[:space:]'`.

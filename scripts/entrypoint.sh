@@ -47,8 +47,14 @@ if [ -f "/etc/proxy-users.txt" ]; then
         _u_raw="${line%%:*}"
         _p="${line#*:}"
 
-        # Trim whitespace from username (only 1 fork)
-        _u=$(printf '%s' "$_u_raw" | tr -d '[:space:]')
+        # Remove all whitespace from username (no forks)
+        _u=""
+        _save_ifs_u="$IFS"; IFS="
+" # space, tab, newline
+        for part in $_u_raw; do
+            _u="${_u}${part}"
+        done
+        IFS="$_save_ifs_u"
         [ -z "$_u" ] && continue
 
         provision_user "$_u" "$_p"
@@ -109,12 +115,10 @@ PROTOCOL="tcp"
     # Client access rules — IP allowlist
     if [ -n "${ALLOWED_CIDR:-}" ]; then
         log "INFO: Applying IP allowlist: $ALLOWED_CIDR"
-        _save="$IFS"; IFS=','
+        _save="$IFS"; IFS=', '
         for _cidr in $ALLOWED_CIDR; do
-            IFS="$_save"
-            _cidr=$(printf '%s' "$_cidr" | tr -d ' ')
+            [ -z "$_cidr" ] && continue
             printf 'client pass {\n    from: %s to: 0.0.0.0/0\n    log: connect disconnect error\n}\n\n' "$_cidr"
-            IFS=','
         done
         IFS="$_save"
         printf 'client block {\n    from: 0.0.0.0/0 to: 0.0.0.0/0\n    log: connect error\n}\n\n'
@@ -125,12 +129,10 @@ PROTOCOL="tcp"
     # Destination block rules
     if [ -n "${BLOCKED_DESTINATIONS:-}" ]; then
         log "INFO: Blocking destinations: $BLOCKED_DESTINATIONS"
-        _save="$IFS"; IFS=','
+        _save="$IFS"; IFS=', '
         for _dest in $BLOCKED_DESTINATIONS; do
-            IFS="$_save"
-            _dest=$(printf '%s' "$_dest" | tr -d ' ')
+            [ -z "$_dest" ] && continue
             printf 'socks block {\n    from: 0.0.0.0/0 to: %s\n    log: connect error\n}\n\n' "$_dest"
-            IFS=','
         done
         IFS="$_save"
     fi
