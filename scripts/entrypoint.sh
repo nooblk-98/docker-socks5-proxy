@@ -21,15 +21,19 @@ fi
 
 # ── 3. User provisioning ──────────────────────────────────────────────────────
 AUTH_ENABLED=false
+PASSWD_DATA=""
 
 provision_user() {
     local user="$1" pass="$2"
     [ -z "$user" ] && return
     [ -z "$pass" ] && return
+    # Check if user exists to avoid redundant useradd calls
     if ! id "$user" >/dev/null 2>&1; then
         useradd -M -s /usr/sbin/nologin "$user"
     fi
-    printf '%s:%s\n' "$user" "$pass" | chpasswd
+    # Batch credentials for a single chpasswd call later (performance)
+    PASSWD_DATA="${PASSWD_DATA}${user}:${pass}
+"
     log "INFO: Provisioned user: $user"
 }
 
@@ -38,25 +42,41 @@ if [ -f "/etc/proxy-users.txt" ]; then
     AUTH_ENABLED=true
     while IFS= read -r line; do
         case "$line" in '#'*|'') continue ;; esac
-        [ -z "$(printf '%s' "$line" | tr -d ' \t')" ] && continue
-        _u=$(printf '%s' "$line" | cut -d: -f1 | tr -d ' \t')
-        _p=$(printf '%s' "$line" | cut -d: -f2-)
+
+        # Split by first colon using shell parameter expansion (no forks)
+        _u_raw="${line%%:*}"
+        _p="${line#*:}"
+
+        # Trim whitespace from username (only 1 fork)
+        _u=$(printf '%s' "$_u_raw" | tr -d '[:space:]')
+        [ -z "$_u" ] && continue
+
         provision_user "$_u" "$_p"
     done < /etc/proxy-users.txt
 elif [ -n "${PROXY_USERS:-}" ]; then
     log "INFO: Auth mode: multi-user (env)"
     AUTH_ENABLED=true
-    printf '%s' "$PROXY_USERS" | tr ',' '\n' | while IFS= read -r pair; do
-        _u=$(printf '%s' "$pair" | cut -d: -f1)
-        _p=$(printf '%s' "$pair" | cut -d: -f2-)
+    # Process PROXY_USERS without pipes to avoid subshells
+    _save_ifs="$IFS"; IFS=','
+    for pair in $PROXY_USERS; do
+        IFS="$_save_ifs"
+        _u="${pair%%:*}"
+        _p="${pair#*:}"
         provision_user "$_u" "$_p"
+        IFS=','
     done
+    IFS="$_save_ifs"
 elif [ -n "${PROXY_USER:-}" ] && [ -n "${PROXY_PASS:-}" ]; then
     log "INFO: Auth mode: single user ($PROXY_USER)"
     AUTH_ENABLED=true
     provision_user "$PROXY_USER" "$PROXY_PASS"
 else
     log "INFO: Auth mode: none (open proxy)"
+fi
+
+# Apply all provisioned passwords in a single batch (significant performance boost for many users)
+if [ -n "$PASSWD_DATA" ]; then
+    printf '%s' "$PASSWD_DATA" | chpasswd
 fi
 
 # ── 4. Build Dante configuration ──────────────────────────────────────────────
@@ -72,6 +92,10 @@ PROTOCOL="tcp"
 
     printf 'internal: 0.0.0.0 port = 1080\n'
     [ "${IPV6_ENABLED:-false}" = "true" ] && printf 'internal: :: port = 1080\n'
+
+    # Performance tuning
+    printf 'internal.backlog: 1024\n'
+    printf 'libwrap: no\n'
 
     printf 'external: %s\n\n' "$IFACE"
     printf 'clientmethod: none\n'
