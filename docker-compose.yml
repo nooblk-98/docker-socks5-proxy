@@ -17,7 +17,21 @@ services:
       - TIMEOUT_NEGOTIATE=${TIMEOUT_NEGOTIATE:-30}
       - TIMEOUT_IO=${TIMEOUT_IO:-86400}
       - TOR_ENABLED=${TOR_ENABLED:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-normal}
 
     # volumes:
     #   - ./users.txt:/etc/proxy-users.txt:ro
+
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+    sysctls:
+      net.core.somaxconn: 32768
+      net.ipv4.tcp_tw_reuse: 1
+      net.ipv4.tcp_fin_timeout: 15
+      net.ipv4.tcp_keepalive_time: 300
+
+    stop_grace_period: 10s
     restart: unless-stopped
