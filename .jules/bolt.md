@@ -1,0 +1,3 @@
+## 2025-05-15 - Shell Loop Optimization and Dante Tuning
+**Learning:** External process forks (like `tr`, `sed`, `awk`) inside shell loops can significantly slow down script execution, especially when processing large environment variables or files. Native POSIX shell features like `IFS` manipulation and parameter expansion are much more efficient as they run within the shell process itself. For Dante specifically, increasing `internal.backlog` helps handle higher connection rates.
+**Action:** Always prefer native shell string manipulation and `IFS` for splitting/cleaning strings in loops. Review service-specific performance parameters like backlogs and timeouts for high-throughput environments.

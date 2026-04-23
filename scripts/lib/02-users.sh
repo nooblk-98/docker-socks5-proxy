@@ -20,7 +20,12 @@ if [ -f "/etc/proxy-users.txt" ]; then
         case "$line" in '#'*|'') continue ;; esac
         _u_raw="${line%%:*}"
         _p="${line#*:}"
-        _u=$(printf '%s' "$_u_raw" | tr -d '[:space:]')
+        # Remove whitespace from username without forking tr
+        _u=""
+        _s_ifs="$IFS"; IFS="
+"
+        for _part in $_u_raw; do _u="${_u}${_part}"; done
+        IFS="$_s_ifs"
         [ -z "$_u" ] && continue
         provision_user "$_u" "$_p"
     done < /etc/proxy-users.txt
