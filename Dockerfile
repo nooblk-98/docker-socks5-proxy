@@ -9,6 +9,7 @@ RUN apk add --no-cache \
 
 COPY config/danted.conf /etc/danted.conf
 COPY --chmod=755 scripts/entrypoint.sh /entrypoint.sh
+COPY --chmod=755 scripts/lib/ /scripts/lib/
 
 EXPOSE 1080
 
