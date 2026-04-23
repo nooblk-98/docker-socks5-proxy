@@ -4,7 +4,7 @@ A production-ready, lightweight SOCKS5 proxy server built on [Dante](https://www
 
 [![Docker Hub](https://img.shields.io/docker/pulls/lahiru98s/docker-socks5-proxy?style=flat-square&logo=docker)](https://hub.docker.com/r/lahiru98s/docker-socks5-proxy)
 [![Image Size](https://img.shields.io/docker/image-size/lahiru98s/docker-socks5-proxy/latest?style=flat-square)](https://hub.docker.com/r/lahiru98s/docker-socks5-proxy)
-[![License](https://img.shields.io/github/license/nooblk-98/docker-socks5-proxy?style=flat-square)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
 ---
 
