@@ -18,16 +18,6 @@ _log_rule='connect disconnect error'
     printf 'internal: 0.0.0.0 port = 1080\n'
     [ "${IPV6_ENABLED:-false}" = "true" ] && printf 'internal: :: port = 1080\n'
 
-    printf 'internal.backlog: 512\n'
-    printf 'child.maxrequests: 0\n'
-    printf 'child.minspare: 5\n'
-    printf 'child.maxspare: 15\n'
-    printf 'socket.recvbuf.udp: 212992\n'
-    printf 'socket.sendbuf.udp: 212992\n'
-    printf 'socket.recvbuf.tcp: 87380\n'
-    printf 'socket.sendbuf.tcp: 87380\n'
-    printf 'libwrap: no\n'
-
     printf 'external: %s\n\n' "$IFACE"
     printf 'clientmethod: none\n'
     printf 'socksmethod: %s\n\n' "$SOCKSMETHOD"
