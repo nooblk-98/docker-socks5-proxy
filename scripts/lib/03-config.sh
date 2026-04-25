@@ -15,8 +15,8 @@ _log_rule='connect disconnect error'
         printf 'logoutput: stderr\n\n'
     fi
 
-    printf 'internal: 0.0.0.0 port = 1080\n'
-    [ "${IPV6_ENABLED:-false}" = "true" ] && printf 'internal: :: port = 1080\n'
+    printf 'internal: 0.0.0.0 port = 1080 backlog = 1024\n'
+    [ "${IPV6_ENABLED:-false}" = "true" ] && printf 'internal: :: port = 1080 backlog = 1024\n'
 
     printf 'external: %s\n\n' "$IFACE"
     printf 'clientmethod: none\n'
@@ -33,13 +33,13 @@ _log_rule='connect disconnect error'
         for _cidr in $ALLOWED_CIDR; do
             IFS="$_save"
             _cidr=$(printf '%s' "$_cidr" | tr -d ' ')
-            printf 'client pass {\n    from: %s to: 0.0.0.0/0\n    log: %s\n}\n\n' "$_cidr" "$_log_rule"
+            printf 'client pass {\n    from: %s to: 0.0.0.0/0\n    log: %s\n    libwrap: no\n}\n\n' "$_cidr" "$_log_rule"
             IFS=','
         done
         IFS="$_save"
         printf 'client block {\n    from: 0.0.0.0/0 to: 0.0.0.0/0\n    log: error\n}\n\n'
     else
-        printf 'client pass {\n    from: 0.0.0.0/0 to: 0.0.0.0/0\n    log: %s\n}\n\n' "$_log_rule"
+        printf 'client pass {\n    from: 0.0.0.0/0 to: 0.0.0.0/0\n    log: %s\n    libwrap: no\n}\n\n' "$_log_rule"
     fi
 
     if [ -n "${BLOCKED_DESTINATIONS:-}" ]; then
@@ -58,6 +58,7 @@ _log_rule='connect disconnect error'
     printf '    from: 0.0.0.0/0 to: 0.0.0.0/0\n'
     printf '    protocol: %s\n' "$PROTOCOL"
     printf '    log: %s\n' "$_log_rule"
+    printf '    libwrap: no\n'
     printf '}\n'
 
     if [ "${TOR_ENABLED:-false}" = "true" ]; then
