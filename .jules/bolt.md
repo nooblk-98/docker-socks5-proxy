@@ -1,0 +1,3 @@
+## 2025-05-14 - [Dante performance tuning]
+**Learning:** Dante performance can be measurably improved by tuning `internal.backlog` and disabling `libwrap`. Attempting to optimize shell startup scripts by replacing robust `tr` calls with native shell loops can introduce parsing regressions and is often not worth the trade-off in readability for a one-time startup process.
+**Action:** Focus on application-level tunables (like Dante's backlog) for significant performance wins. Ensure shell script optimizations do not compromise robustness, especially when handling user-provided credentials or CIDRs.

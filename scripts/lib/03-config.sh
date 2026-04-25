@@ -19,6 +19,13 @@ _log_rule='connect disconnect error'
     [ "${IPV6_ENABLED:-false}" = "true" ] && printf 'internal: :: port = 1080\n'
 
     printf 'external: %s\n\n' "$IFACE"
+
+    # Performance optimizations
+    # internal.backlog: handle larger bursts of incoming connections
+    printf 'internal.backlog: 1024\n'
+    # libwrap: skip TCP wrapper checks to improve connection setup time
+    printf 'libwrap: no\n\n'
+
     printf 'clientmethod: none\n'
     printf 'socksmethod: %s\n\n' "$SOCKSMETHOD"
     printf 'user.privileged: root\n'
