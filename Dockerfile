@@ -8,8 +8,6 @@ LABEL org.opencontainers.image.licenses="MIT" \
 
 RUN apk add --no-cache \
     dante-server \
-    shadow \
-    iproute2 \
     netcat-openbsd \
     tor
 
