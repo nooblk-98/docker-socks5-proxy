@@ -15,9 +15,9 @@ if [ "${TOR_ENABLED:-false}" = "true" ]; then
         _i=$((_i + 1))
     done
 
-    if nc -w 1 127.0.0.1 9050 </dev/null 2>/dev/null; then
-        log "INFO: Tor ready on 127.0.0.1:9050"
-    else
+    if [ "$_i" -eq 30 ]; then
         log "WARN: Tor did not become ready in time — continuing anyway"
+    else
+        log "INFO: Tor ready on 127.0.0.1:9050"
     fi
 fi
