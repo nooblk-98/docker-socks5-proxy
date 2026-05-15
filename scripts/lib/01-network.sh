@@ -7,5 +7,9 @@ log "INFO: Outbound interface: $IFACE"
 
 if [ -n "${DNS_SERVER:-}" ]; then
     log "INFO: Overriding DNS with $DNS_SERVER"
-    printf 'nameserver %s\n' "$DNS_SERVER" > /etc/resolv.conf
+    # Prepend custom DNS, preserving non-nameserver lines as fallback
+    {
+        printf 'nameserver %s\n' "$DNS_SERVER"
+        grep -v '^nameserver' /etc/resolv.conf 2>/dev/null || true
+    } > /etc/resolv.conf
 fi

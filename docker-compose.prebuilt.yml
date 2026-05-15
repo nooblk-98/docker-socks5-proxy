@@ -1,7 +1,6 @@
 services:
   socks5:
     image: lahiru98s/docker-socks5-proxy:latest
-    container_name: socks5-server
     ports:
       - "${SOCKS5_PORT:-54178}:1080"
     environment:
@@ -21,6 +20,9 @@ services:
 
     # volumes:
     #   - ./users.txt:/etc/proxy-users.txt:ro
+
+    cap_add:
+      - SYS_ADMIN
 
     ulimits:
       nofile:
