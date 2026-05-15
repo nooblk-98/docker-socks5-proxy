@@ -1,86 +1,78 @@
+<div align="center">
+
 # docker-socks5-proxy
 
-A production-ready, lightweight SOCKS5 proxy server built on [Dante](https://www.inet.no/dante/) and Alpine Linux. Single ~15MB image, zero runtime dependencies, fully configurable via environment variables.
+[![Docker Pulls](https://img.shields.io/docker/pulls/lahiru98s/docker-socks5-proxy?style=flat-square&logo=docker&color=2496ed)](https://hub.docker.com/r/lahiru98s/docker-socks5-proxy)
+[![Image Size](https://img.shields.io/docker/image-size/lahiru98s/docker-socks5-proxy/latest?style=flat-square&logo=docker&color=2496ed)](https://hub.docker.com/r/lahiru98s/docker-socks5-proxy)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+[![Alpine](https://img.shields.io/badge/Alpine-3.21-0d597f?style=flat-square&logo=alpinelinux)](https://alpinelinux.org/)
 
-[![Docker Hub](https://img.shields.io/docker/pulls/lahiru98s/docker-socks5-proxy?style=flat-square&logo=docker)](https://hub.docker.com/r/lahiru98s/docker-socks5-proxy)
-[![Image Size](https://img.shields.io/docker/image-size/lahiru98s/docker-socks5-proxy/latest?style=flat-square)](https://hub.docker.com/r/lahiru98s/docker-socks5-proxy)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+Lightweight SOCKS5 proxy server built on [Dante](https://www.inet.no/dante/) and Alpine Linux. Single ~15 MB image, zero runtime dependencies, fully configurable via environment variables.
 
----
+[Features](#features) • [Quick start](#quick-start) • [Configuration](#configuration) • [Authentication](#authentication) • [Access control](#access-control)
+
+</div>
 
 ## Features
 
-| Feature | Description |
-|---|---|
-| SOCKS5 protocol | Full TCP support with optional UDP ASSOCIATE via Dante |
-| Flexible authentication | Open proxy, single user, or multi-user with file or env |
-| IP allowlist | Restrict access to specific source CIDRs |
-| Destination filtering | Block outbound access to IPs or subnets |
-| IPv6 support | Optional dual-stack internal listener |
-| Custom DNS | Override the container resolver to prevent DNS leaks |
-| Configurable timeouts | Fine-tune connect, negotiate, and idle session timeouts |
-| Tor routing | One env var routes all traffic through the Tor network |
-| Quiet log mode | Suppress per-connection logs for high-throughput deployments |
-| Graceful reload | Send `SIGHUP` to hot-reload config without container restart |
-| Health check | Docker `HEALTHCHECK` reports true proxy availability |
-| Performance tuned | Kernel TCP tuning, fd limits, Dante worker pre-forking |
+- **SOCKS5** — Full TCP support with optional UDP ASSOCIATE via Dante
+- **Flexible auth** — Open proxy, single user, or multi-user via env/file
+- **IP allowlisting** — Restrict inbound connections to specific CIDRs
+- **Destination filtering** — Block outbound access to IPs or subnets
+- **Tor routing** — Route all traffic through the Tor network with one env var
+- **IPv6 ready** — Optional dual-stack internal listener
+- **DNS control** — Override the container resolver to prevent leaks
+- **Performance tuned** — Kernel TCP tuning, fd limits, and optimized timeouts
+- **Health check** — Built-in `HEALTHCHECK` for container orchestration
+- **Hot reload** — Send `SIGHUP` to reload config without restarting
 
----
+## Quick start
 
-## Quick Start
-
-### Option 1 — Docker Hub (recommended)
+### Use the prebuilt image
 
 ```bash
-docker run -d \
-  --name socks5-server \
-  --restart unless-stopped \
-  -p 54178:1080 \
-  lahiru98s/docker-socks5-proxy:latest
+docker run -d --name socks5-server --restart unless-stopped -p 54178:1080 lahiru98s/docker-socks5-proxy:latest
 ```
 
-With authentication:
+Or with authentication:
 
 ```bash
-docker run -d \
-  --name socks5-server \
-  --restart unless-stopped \
+docker run -d --name socks5-server --restart unless-stopped \
   -p 54178:1080 \
   -e PROXY_USER=alice \
   -e PROXY_PASS=secret \
   lahiru98s/docker-socks5-proxy:latest
 ```
 
-With Docker Compose using the prebuilt image:
+### Compose (prebuilt)
 
 ```bash
 curl -O https://raw.githubusercontent.com/nooblk-98/docker-socks5-proxy/main/docker-compose.prebuilt.yml
 docker compose -f docker-compose.prebuilt.yml up -d
 ```
 
-### Option 2 — Build from source
+### Build from source
 
 ```bash
 git clone https://github.com/nooblk-98/docker-socks5-proxy.git
 cd docker-socks5-proxy
 cp .env.example .env
-# Edit .env as needed
 docker compose up -d --build
 ```
 
 The proxy listens on port `54178` by default (configurable via `SOCKS5_PORT`).
 
----
+## Configuration
 
-## Configuration Reference
+All configuration is done through environment variables. Copy `.env.example` to `.env` and customize:
 
 | Variable | Default | Description |
 |---|---|---|
 | `SOCKS5_PORT` | `54178` | Host port mapped to the SOCKS5 listener |
-| `PROXY_USER` | _(empty)_ | Single username — leave empty for open proxy |
+| `PROXY_USER` | _(empty)_ | Single username (leave empty for open proxy) |
 | `PROXY_PASS` | _(empty)_ | Single user password |
 | `PROXY_USERS` | _(empty)_ | Comma-separated `user:pass` pairs (overrides single user) |
-| `ALLOWED_CIDR` | _(empty)_ | Comma-separated source CIDRs permitted to connect (empty = all) |
+| `ALLOWED_CIDR` | _(empty)_ | Comma-separated source CIDRs permitted to connect |
 | `BLOCKED_DESTINATIONS` | _(empty)_ | Comma-separated destination IPs/CIDRs to block outbound |
 | `UDP_ENABLED` | `false` | Enable SOCKS5 UDP ASSOCIATE |
 | `IPV6_ENABLED` | `false` | Add an IPv6 internal listener (`:: 1080`) |
@@ -91,30 +83,24 @@ The proxy listens on port `54178` by default (configurable via `SOCKS5_PORT`).
 | `TOR_ENABLED` | `false` | Route all outbound traffic through Tor |
 | `LOG_LEVEL` | `normal` | Set to `quiet` to suppress connect/disconnect logs |
 
----
-
 ## Authentication
 
-### Open proxy (no auth)
+The proxy supports multiple authentication modes.
 
-Leave `PROXY_USER` and `PROXY_PASS` unset (default behavior).
+**Open proxy** — Leave `PROXY_USER` and `PROXY_PASS` unset (the default).
 
-### Single user
-
+**Single user:**
 ```env
 PROXY_USER=alice
 PROXY_PASS=secret
 ```
 
-### Multiple users via environment variable
-
+**Multiple users via environment variable:**
 ```env
-PROXY_USERS=alice:secret,bob:hunter2,carol:p@ssw0rd
+PROXY_USERS=alice:secret,bob:hunter2
 ```
 
-### Multiple users via file
-
-Create a `users.txt` file — one `user:pass` per line, lines starting with `#` are ignored:
+**Multiple users via file:** Create a `users.txt` with one `user:pass` per line:
 
 ```
 # Proxy users
@@ -122,16 +108,16 @@ alice:secret
 bob:hunter2
 ```
 
-Mount it in `docker-compose.yml`:
+Mount it into the container:
 
 ```yaml
 volumes:
   - ./users.txt:/etc/proxy-users.txt:ro
 ```
 
----
+## Access control
 
-## IP Allowlist
+### IP allowlist
 
 Restrict inbound connections to specific source CIDRs. All other clients are blocked.
 
@@ -139,61 +125,15 @@ Restrict inbound connections to specific source CIDRs. All other clients are blo
 ALLOWED_CIDR=203.0.113.0/24,198.51.100.5/32
 ```
 
----
+### Destination filtering
 
-## Destination Filtering
-
-Block outbound access to specific IPs or subnets — useful for preventing access to internal networks:
+Block outbound access to specific IPs or subnets — useful for preventing access to internal networks.
 
 ```env
 BLOCKED_DESTINATIONS=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
 ```
 
----
-
-## UDP Support
-
-Enable the SOCKS5 UDP ASSOCIATE command for DNS and UDP-based applications:
-
-```env
-UDP_ENABLED=true
-```
-
----
-
-## IPv6
-
-Bind an additional `::` listener to accept connections from IPv6 clients:
-
-```env
-IPV6_ENABLED=true
-```
-
-> Docker's default network is IPv4-only. To use IPv6, enable `enable_ipv6` in your Docker daemon configuration.
-
----
-
-## Custom DNS
-
-Point the container at a specific DNS resolver to prevent leaks:
-
-```env
-DNS_SERVER=1.1.1.1
-```
-
----
-
-## Configurable Timeouts
-
-```env
-TIMEOUT_CONNECT=30      # Seconds to establish an outbound TCP connection
-TIMEOUT_NEGOTIATE=30    # Seconds allowed for the SOCKS5 handshake
-TIMEOUT_IO=3600         # Idle session timeout (seconds)
-```
-
----
-
-## Tor Routing
+## Tor routing
 
 Route all proxied traffic through the Tor network with a single variable:
 
@@ -205,25 +145,38 @@ Dante forwards all connections to Tor's local SOCKS5 port (`9050`). The Tor daem
 
 > The first connection after startup may be slow while Tor builds its circuits.
 
----
+## Advanced
 
-## Log Level
+### UDP support
 
-For high-throughput deployments, suppress per-connection log entries to reduce I/O overhead:
+```env
+UDP_ENABLED=true
+```
+
+### IPv6
+
+```env
+IPV6_ENABLED=true
+```
+
+> Docker's default network is IPv4-only. To use IPv6, enable `enable_ipv6` in your Docker daemon configuration.
+
+### Custom DNS
+
+```env
+DNS_SERVER=1.1.1.1
+```
+
+### Quiet log mode
+
+For high-throughput deployments, suppress per-connection log entries:
 
 ```env
 LOG_LEVEL=quiet
 ```
 
-When set to `quiet`, only errors are logged. Default is `normal` (connect/disconnect/error).
-
----
-
-## Graceful Config Reload
-
-Send `SIGHUP` to reload Dante's configuration without restarting the container or dropping active connections:
+### Graceful config reload
 
 ```bash
 docker kill --signal=HUP socks5-server
 ```
-
