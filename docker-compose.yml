@@ -8,7 +8,9 @@ services:
       - PROXY_PASS=${PROXY_PASS:-}
       - PROXY_USERS=${PROXY_USERS:-}
       - ALLOWED_CIDR=${ALLOWED_CIDR:-}
+      - ALLOWED_DOMAINS=${ALLOWED_DOMAINS:-}
       - BLOCKED_DESTINATIONS=${BLOCKED_DESTINATIONS:-}
+      - BLOCKED_DOMAINS=${BLOCKED_DOMAINS:-}
       - UDP_ENABLED=${UDP_ENABLED:-false}
       - IPV6_ENABLED=${IPV6_ENABLED:-false}
       - DNS_SERVER=${DNS_SERVER:-}
@@ -16,7 +18,9 @@ services:
       - TIMEOUT_NEGOTIATE=${TIMEOUT_NEGOTIATE:-30}
       - TIMEOUT_IO=${TIMEOUT_IO:-86400}
       - TOR_ENABLED=${TOR_ENABLED:-false}
+      - UPSTREAM_PROXY=${UPSTREAM_PROXY:-}
       - LOG_LEVEL=${LOG_LEVEL:-normal}
+      - DRAIN_TIMEOUT=${DRAIN_TIMEOUT:-5}
 
     # volumes:
     #   - ./users.txt:/etc/proxy-users.txt:ro
@@ -34,5 +38,5 @@ services:
       net.ipv4.tcp_fin_timeout: 15
       net.ipv4.tcp_keepalive_time: 300
 
-    stop_grace_period: 10s
+    stop_grace_period: 30s
     restart: unless-stopped
