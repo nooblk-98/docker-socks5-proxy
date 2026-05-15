@@ -1,4 +1,4 @@
-IFACE=$(ip route | awk '/default/ {print $5; exit}')
+IFACE=$(awk '$2 == "00000000" {print $1; exit}' /proc/net/route)
 if [ -z "$IFACE" ]; then
     log "ERROR: Could not detect network interface"
     exit 1

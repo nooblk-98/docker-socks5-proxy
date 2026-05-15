@@ -13,14 +13,16 @@ on:
 env:
   DOCKERHUB_IMAGE: lahiru98s/docker-socks5-proxy
   GHCR_IMAGE: ghcr.io/nooblk-98/docker-socks5-proxy
+  COSIGN_EXPERIMENTAL: 1
 
 jobs:
   build-and-push:
-    name: Build & Push to Docker Hub + GHCR
+    name: Build, Scan, Sign & Push
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -59,6 +61,7 @@ jobs:
             type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
 
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -68,6 +71,26 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ env.DOCKERHUB_IMAGE }}:${{ steps.meta.outputs.version || 'latest' }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign images with Cosign (keyless)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes "${DOCKERHUB_IMAGE}@${DIGEST}"
+          cosign sign --yes "${GHCR_IMAGE}@${DIGEST}"
 
       - name: Docker Hub image summary
         run: |
@@ -79,6 +102,9 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**SBOM + Provenance:** Attestations attached to images" >> $GITHUB_STEP_SUMMARY
+          echo "**Signed with Cosign:** Keyless (OIDC)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Registry | Image |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY

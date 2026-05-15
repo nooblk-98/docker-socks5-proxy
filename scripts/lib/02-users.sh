@@ -1,15 +1,13 @@
 AUTH_ENABLED=false
-PASSWD_DATA=""
 
 provision_user() {
     local user="$1" pass="$2"
     [ -z "$user" ] && return
     [ -z "$pass" ] && return
     if ! id "$user" >/dev/null 2>&1; then
-        useradd -M -s /usr/sbin/nologin "$user"
+        adduser -D -H -s /usr/sbin/nologin "$user" >/dev/null 2>&1
     fi
-    PASSWD_DATA="${PASSWD_DATA}${user}:${pass}
-"
+    printf '%s\n%s\n' "$pass" "$pass" | passwd "$user" >/dev/null 2>&1
     log "INFO: Provisioned user: $user"
 }
 
@@ -42,8 +40,4 @@ elif [ -n "${PROXY_USER:-}" ] && [ -n "${PROXY_PASS:-}" ]; then
     provision_user "$PROXY_USER" "$PROXY_PASS"
 else
     log "INFO: Auth mode: none (open proxy)"
-fi
-
-if [ -n "$PASSWD_DATA" ]; then
-    printf '%s' "$PASSWD_DATA" | chpasswd
 fi

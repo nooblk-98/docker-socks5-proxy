@@ -1,0 +1,11 @@
+.git/
+.gitattributes
+.gitignore
+.github/
+.env
+.env.example
+README.md
+LICENSE
+.dockerignore
+docker-compose.yml
+docker-compose.prebuilt.yml
