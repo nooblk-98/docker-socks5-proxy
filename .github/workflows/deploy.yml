@@ -83,28 +83,66 @@ jobs:
           echo "Checked out $(git log -1 --oneline)"
           EOF
 
-      - name: Upload .env from secret
+      # Credentials come from repository secrets; everything else from repository
+      # variables. Unset values are omitted so docker-compose.yml defaults apply.
+      - name: Generate and upload .env
         env:
-          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
+          PROXY_USER: ${{ secrets.PROXY_USER }}
+          PROXY_PASS: ${{ secrets.PROXY_PASS }}
+          PROXY_USERS: ${{ secrets.PROXY_USERS }}
+          UPSTREAM_PROXY: ${{ secrets.UPSTREAM_PROXY }}
+          SOCKS5_PORT: ${{ vars.SOCKS5_PORT }}
+          ALLOWED_CIDR: ${{ vars.ALLOWED_CIDR }}
+          ALLOWED_DOMAINS: ${{ vars.ALLOWED_DOMAINS }}
+          BLOCKED_DESTINATIONS: ${{ vars.BLOCKED_DESTINATIONS }}
+          BLOCKED_DOMAINS: ${{ vars.BLOCKED_DOMAINS }}
+          UDP_ENABLED: ${{ vars.UDP_ENABLED }}
+          IPV6_ENABLED: ${{ vars.IPV6_ENABLED }}
+          DNS_SERVER: ${{ vars.DNS_SERVER }}
+          TIMEOUT_CONNECT: ${{ vars.TIMEOUT_CONNECT }}
+          TIMEOUT_NEGOTIATE: ${{ vars.TIMEOUT_NEGOTIATE }}
+          TIMEOUT_IO: ${{ vars.TIMEOUT_IO }}
+          TOR_ENABLED: ${{ vars.TOR_ENABLED }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+          DRAIN_TIMEOUT: ${{ vars.DRAIN_TIMEOUT }}
+          ALLOW_OPEN_PROXY: ${{ vars.ALLOW_OPEN_PROXY }}
         run: |
-          if [ -z "$DEPLOY_ENV_FILE" ]; then
-            echo "DEPLOY_ENV_FILE secret not set; keeping the existing .env on the server"
-            exit 0
+          if [ -z "$PROXY_USERS" ] && { [ -z "$PROXY_USER" ] || [ -z "$PROXY_PASS" ]; }; then
+            if [ "$ALLOW_OPEN_PROXY" != "true" ]; then
+              echo "::error::No credentials configured. Set the PROXY_USER + PROXY_PASS (or PROXY_USERS) secrets, or set the ALLOW_OPEN_PROXY variable to 'true' to run without auth."
+              exit 1
+            fi
+            echo "::warning::Deploying WITHOUT authentication (ALLOW_OPEN_PROXY=true)"
           fi
-          printf '%s\n' "$DEPLOY_ENV_FILE" | ssh deploy "umask 077 && cat > '$DEPLOY_DIR/.env'"
-          echo "Wrote .env from DEPLOY_ENV_FILE secret"
+
+          umask 077
+          : > env.deploy
+          for key in SOCKS5_PORT PROXY_USER PROXY_PASS PROXY_USERS UPSTREAM_PROXY \
+                     ALLOWED_CIDR ALLOWED_DOMAINS BLOCKED_DESTINATIONS BLOCKED_DOMAINS \
+                     UDP_ENABLED IPV6_ENABLED DNS_SERVER TIMEOUT_CONNECT TIMEOUT_NEGOTIATE \
+                     TIMEOUT_IO TOR_ENABLED LOG_LEVEL DRAIN_TIMEOUT; do
+            val="${!key}"
+            [ -z "$val" ] && continue
+            # Single quotes keep compose from interpolating '$' in passwords,
+            # but compose has no escape for a quote inside them.
+            case "$val" in
+              *"'"*|*$'\n'*)
+                echo "::error::$key contains a single quote or newline, which .env cannot represent"
+                exit 1
+                ;;
+            esac
+            printf "%s='%s'\n" "$key" "$val" >> env.deploy
+            echo "Set $key"
+          done
+
+          ssh deploy "umask 077 && cat > '$DEPLOY_DIR/.env'" < env.deploy
+          rm -f env.deploy
 
       - name: Build and restart container
         run: |
           ssh deploy "bash -s -- '$DEPLOY_DIR'" <<'EOF'
           set -euo pipefail
           cd "$1"
-
-          if [ ! -f .env ]; then
-            echo "::error::No .env on the server. Create $1/.env (see .env.example) or set the DEPLOY_ENV_FILE secret."
-            echo "Refusing to start: without credentials this would run as an open proxy."
-            exit 1
-          fi
 
           docker compose -f docker-compose.yml up -d --build --remove-orphans
           docker image prune -f
