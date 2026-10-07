@@ -49,7 +49,7 @@ jobs:
           cat > ~/.ssh/config <<EOF
           Host deploy
             HostName $SSH_HOST
-            User ${SSH_USER:-root}
+            User ${SSH_USER:-ubuntu}
             Port ${SSH_PORT:-22}
             IdentityFile ~/.ssh/deploy_key
             IdentitiesOnly yes
@@ -68,6 +68,11 @@ jobs:
           command -v docker >/dev/null || { echo "docker is not installed on the server"; exit 1; }
 
           if [ ! -d "$DEPLOY_DIR/.git" ]; then
+            # Non-root deploy users (e.g. ubuntu) can't create dirs under /opt directly.
+            if [ ! -d "$DEPLOY_DIR" ] && [ "$(id -u)" -ne 0 ]; then
+              sudo -n mkdir -p "$DEPLOY_DIR"
+              sudo -n chown "$(id -u):$(id -g)" "$DEPLOY_DIR"
+            fi
             git clone "$REPO_URL" "$DEPLOY_DIR"
           fi
 
