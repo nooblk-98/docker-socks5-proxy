@@ -1,0 +1,129 @@
+name: Deploy to Server
+
+run-name: Deploy ${{ github.sha }} to server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two deploys against the server at the same time; queue them instead.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  DEPLOY_DIR: /opt/docker-socks5-proxy
+  REPO_URL: https://github.com/${{ github.repository }}.git
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Prefer a pinned host key; fall back to scanning on first setup.
+          if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::SSH_KNOWN_HOSTS secret not set; trusting host key from ssh-keyscan"
+            ssh-keyscan -p "${SSH_PORT:-22}" -H "$SSH_HOST" > ~/.ssh/known_hosts
+          fi
+          chmod 644 ~/.ssh/known_hosts
+
+          cat > ~/.ssh/config <<EOF
+          Host deploy
+            HostName $SSH_HOST
+            User ${SSH_USER:-root}
+            Port ${SSH_PORT:-22}
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Sync repository on server
+        run: |
+          ssh deploy "bash -s -- '$DEPLOY_DIR' '$REPO_URL' '$GITHUB_SHA'" <<'EOF'
+          set -euo pipefail
+          DEPLOY_DIR="$1"; REPO_URL="$2"; SHA="$3"
+
+          command -v git >/dev/null || { echo "git is not installed on the server"; exit 1; }
+          command -v docker >/dev/null || { echo "docker is not installed on the server"; exit 1; }
+
+          if [ ! -d "$DEPLOY_DIR/.git" ]; then
+            git clone "$REPO_URL" "$DEPLOY_DIR"
+          fi
+
+          cd "$DEPLOY_DIR"
+          git fetch --prune origin
+          # .env is gitignored, so a hard reset leaves it untouched.
+          git reset --hard "$SHA"
+          echo "Checked out $(git log -1 --oneline)"
+          EOF
+
+      - name: Upload .env from secret
+        env:
+          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
+        run: |
+          if [ -z "$DEPLOY_ENV_FILE" ]; then
+            echo "DEPLOY_ENV_FILE secret not set; keeping the existing .env on the server"
+            exit 0
+          fi
+          printf '%s\n' "$DEPLOY_ENV_FILE" | ssh deploy "umask 077 && cat > '$DEPLOY_DIR/.env'"
+          echo "Wrote .env from DEPLOY_ENV_FILE secret"
+
+      - name: Build and restart container
+        run: |
+          ssh deploy "bash -s -- '$DEPLOY_DIR'" <<'EOF'
+          set -euo pipefail
+          cd "$1"
+
+          if [ ! -f .env ]; then
+            echo "::error::No .env on the server. Create $1/.env (see .env.example) or set the DEPLOY_ENV_FILE secret."
+            echo "Refusing to start: without credentials this would run as an open proxy."
+            exit 1
+          fi
+
+          docker compose -f docker-compose.yml up -d --build --remove-orphans
+          docker image prune -f
+
+          # Give the container a moment, then make sure it is still running.
+          sleep 5
+          docker compose -f docker-compose.yml ps
+          if [ -z "$(docker compose -f docker-compose.yml ps --status running -q socks5)" ]; then
+            echo "::error::socks5 container is not running after deploy"
+            docker compose -f docker-compose.yml logs --tail 100 socks5
+            exit 1
+          fi
+          EOF
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          {
+            echo "### Deploy ${{ job.status == 'success' && ':white_check_mark:' || ':x:' }}"
+            echo ""
+            echo "**Commit:** \`${GITHUB_SHA::7}\`"
+            echo "**Path:** \`${DEPLOY_DIR}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
